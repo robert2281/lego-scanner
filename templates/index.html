@@ -76,11 +76,12 @@
                 }
             }
 
-            const detectedRaw = bestMatch.className.replace(/\./g, '').trim().toLowerCase();
+            const detectedName = bestMatch.className.trim();
+            const searchName = detectedName.toLowerCase();
             
             const dbKey = Object.keys(legoDatabase).find(key => {
                 const k = key.toLowerCase();
-                return detectedRaw.includes(k) || k.includes(detectedRaw);
+                return searchName.includes(k) || k.includes(searchName);
             });
 
             const data = legoDatabase[dbKey];
@@ -88,7 +89,7 @@
 
             if (data) {
                 resultBlock.innerHTML = `
-                    <h2 id="part-name">${bestMatch.className.replace(/\./g, '')}</h2>
+                    <h2 id="part-name">${detectedName}</h2>
                     <div id="details" style="display: block; text-align: left; border-top: 1px solid #ccc; padding-top: 10px;">
                         <p><span class="info-label">Design ID:</span> ${data.ids}</p>
                         <p><span class="info-label">Market Price:</span> <span class="price-tag">${data.price}</span></p>
@@ -97,7 +98,7 @@
             } else {
                 resultBlock.innerHTML = `
                     <h2 style="color: #e60012;">NOT IN BASE</h2>
-                    <p>ИИ выдал: <b>"${bestMatch.className}"</b></p>
+                    <p>ИИ выдал: <b>"${detectedName}"</b></p>
                 `;
             }
         });
