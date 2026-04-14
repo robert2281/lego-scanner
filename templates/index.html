@@ -67,12 +67,10 @@
             color: #0055ad;
             font-size: 24px;
             margin: 10px 0;
-            /* Жёсткие настройки, чтобы текст не обрезался */
             white-space: normal !important;
             overflow: visible !important;
             text-overflow: clip !important;
             display: block;
-            line-height: 1.2;
         }
         .info-label { font-weight: bold; color: #333; }
         .price-tag { color: #28a745; font-size: 20px; font-weight: bold; }
@@ -94,17 +92,17 @@
         const URL = "https://teachablemachine.withgoogle.com/models/9a2XHS5dZ/";
         
         const legoDatabase = {
-            "Brown Brick 2x2": { price: "EUR 0.0056", ids: "4623773, 6014520, 6092677" },
+            "Brown Brick 2x2": { price: "EUR 0.0056", ids: "4623773" },
             "Blue Grille 2x1": { price: "EUR 0.0009", ids: "6152109" },
             "Red Round Plate 2x2": { price: "EUR 0.001", ids: "6132541" },
             "Dark Grey Brick 2x2": { price: "EUR 0.0056", ids: "4211060" },
             "Grey Brick With 2 Studs 2x1": { price: "EUR 0.0086", ids: "6015344" },
             "Black Plate 2x3": { price: "EUR 0.0062", ids: "302126" },
             "Orange Plate 2x2": { price: "EUR 0.0022", ids: "4159007" },
-            "Grey Brick 6x2": { price: "EUR 0.01", ids: "4211795, 4274668" },
+            "Grey Brick 6x2": { price: "EUR 0.01", ids: "4211795" },
             "Black Brick 4x1": { price: "EUR 0.006", ids: "301026" },
             "Tan Brick 4x1": { price: "EUR 0.006", ids: "301005" },
-            "Grey Plate With 4 Studs 4x3": { price: "EUR 0.02", ids: "6132741, 6550154" },
+            "Grey Plate With 4 Studs 4x3": { price: "EUR 0.02", ids: "6132741" },
             "Grey Corner Brick 2x2": { price: "EUR 0.0086", ids: "4211109" },
             "Dark Orange Plate With 1 Stud 1x2": { price: "EUR 0.0043", ids: "6092602" },
             "Black Brick 1x1": { price: "EUR 0.0034", ids: "300526" },
@@ -116,11 +114,9 @@
             "Tan Masonry Brick 2x1": { price: "EUR 0.01", ids: "4646577" }
         };
 
-        let model, maxPredictions;
-
+        let model;
         async function init() {
             model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-            maxPredictions = model.getTotalClasses();
         }
 
         document.getElementById('imageUpload').addEventListener('change', function(e) {
@@ -130,7 +126,6 @@
                 img.src = reader.result;
                 img.style.display = 'block';
                 document.getElementById('scan-btn').style.display = 'inline-block';
-                document.getElementById('result').innerHTML = '<h2 id="part-name">READY TO SCAN</h2>';
             }
             reader.readAsDataURL(e.target.files[0]);
         });
@@ -139,28 +134,22 @@
             const img = document.getElementById('preview');
             const prediction = await model.predict(img);
             
-            let bestMatch = { className: "", probability: 0 };
-            for (let i = 0; i < maxPredictions; i++) {
-                if (prediction[i].probability > bestMatch.probability) {
-                    bestMatch = prediction[i];
-                }
-            }
-
-            const detectedName = bestMatch.className.trim();
-            const searchName = detectedName.toLowerCase();
+            let bestMatch = prediction.reduce((prev, curr) => (prev.probability > curr.probability) ? prev : curr);
             
-            // Улучшенный поиск, чтобы точки в конце ("...") не мешали находить деталь в базе
+            // Чистим точки и пробелы
+            const detectedRaw = bestMatch.className.replace(/\./g, '').trim().toLowerCase();
+            
+            // Поиск по базе (частичное совпадение)
             const dbKey = Object.keys(legoDatabase).find(key => {
                 const k = key.toLowerCase();
-                return searchName.includes(k) || k.includes(searchName);
+                return k.includes(detectedRaw) || detectedRaw.includes(k.split(' ')[0].toLowerCase());
             });
 
-            const data = legoDatabase[dbKey];
             const resultBlock = document.getElementById('result');
-
-            if (data) {
+            if (dbKey) {
+                const data = legoDatabase[dbKey];
                 resultBlock.innerHTML = `
-                    <h2 id="part-name">${detectedName}</h2>
+                    <h2 id="part-name">${dbKey}</h2>
                     <div style="text-align: left; border-top: 1px solid #ccc; padding-top: 10px;">
                         <p><span class="info-label">Design ID:</span> ${data.ids}</p>
                         <p><span class="info-label">Market Price:</span> <span class="price-tag">${data.price}</span></p>
@@ -169,7 +158,7 @@
             } else {
                 resultBlock.innerHTML = `
                     <h2 style="color: #e60012;">NOT IN BASE</h2>
-                    <p>ИИ выдал: <b>"${detectedName}"</b></p>
+                    <p>ИИ выдал: <b>"${bestMatch.className}"</b></p>
                 `;
             }
         });
