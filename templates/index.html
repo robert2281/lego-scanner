@@ -4,68 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEGO AI Scanner</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #ffcf00;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 10px 10px 0px #e60012;
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
-            border: 4px solid #000;
-        }
-        h1 {
-            color: #e60012;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            -webkit-text-stroke: 1px black;
-        }
-        .btn {
-            background-color: #e60012;
-            color: white;
-            padding: 12px 25px;
-            border: 2px solid black;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
-            display: inline-block;
-            margin: 10px;
-        }
-        #imageUpload { display: none; }
-        #preview {
-            max-width: 100%;
-            border-radius: 10px;
-            margin: 20px 0;
-            border: 3px solid #555;
-            display: none;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-            border: 2px dashed #333;
-            text-align: center;
-            min-height: 100px;
-        }
-        #part-name { color: #0055ad; font-size: 24px; margin: 10px 0; }
-        .info-label { font-weight: bold; color: #333; }
-        .price-tag { color: #28a745; font-size: 20px; font-weight: bold; }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -80,7 +21,6 @@
     </div>
 
     <script>
-        // ЗАМЕНИ ЭТУ ССЫЛКУ НА СВОЮ НОВУЮ, КОГДА ПЕРЕОБУЧИШЬ МОДЕЛЬ
         const URL = "https://teachablemachine.withgoogle.com/models/9a2XHS5dZ/";
         
         const legoDatabase = {
@@ -109,9 +49,7 @@
         let model, maxPredictions;
 
         async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
             maxPredictions = model.getTotalClasses();
         }
 
@@ -138,19 +76,20 @@
                 }
             }
 
-            const detectedName = bestMatch.className.trim();
+            const detectedRaw = bestMatch.className.replace(/\./g, '').trim().toLowerCase();
             
-            // Ищем ключ в базе, игнорируя регистр (на случай если в базе маленькие буквы, а в ИИ большие)
-            const dbKey = Object.keys(legoDatabase).find(k => k.toLowerCase() === detectedName.toLowerCase());
-            const data = legoDatabase[dbKey];
+            const dbKey = Object.keys(legoDatabase).find(key => {
+                const k = key.toLowerCase();
+                return detectedRaw.includes(k) || k.includes(detectedRaw);
+            });
 
+            const data = legoDatabase[dbKey];
             const resultBlock = document.getElementById('result');
 
             if (data) {
-                // Выводим ровно так, как называется в ИИ (без toUpperCase)
                 resultBlock.innerHTML = `
-                    <h2 style="color: #0055ad; margin: 10px 0;">${detectedName}</h2>
-                    <div style="text-align: left; border-top: 1px solid #ccc; padding-top: 10px;">
+                    <h2 id="part-name">${bestMatch.className.replace(/\./g, '')}</h2>
+                    <div id="details" style="display: block; text-align: left; border-top: 1px solid #ccc; padding-top: 10px;">
                         <p><span class="info-label">Design ID:</span> ${data.ids}</p>
                         <p><span class="info-label">Market Price:</span> <span class="price-tag">${data.price}</span></p>
                     </div>
@@ -158,8 +97,7 @@
             } else {
                 resultBlock.innerHTML = `
                     <h2 style="color: #e60012;">NOT IN BASE</h2>
-                    <p>ИИ узнал деталь как: <b>"${detectedName}"</b></p>
-                    <p style="font-size: 0.8em; color: #666;">Проверь название в legoDatabase</p>
+                    <p>ИИ выдал: <b>"${bestMatch.className}"</b></p>
                 `;
             }
         });
@@ -168,3 +106,4 @@
     </script>
 </body>
 </html>
+
