@@ -1,0 +1,5 @@
+body { font-family: sans-serif; background: #f0f0f0; text-align: center; padding: 50px; }
+.container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: inline-block; }
+h1 { color: #d32f2f; }
+.btn { background: #ffcf00; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 5px; }
+.info-row { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px; width: 300px; }
