@@ -111,9 +111,7 @@
         let model, maxPredictions;
 
         async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
             maxPredictions = model.getTotalClasses();
         }
 
@@ -142,22 +140,22 @@
             }
 
             const className = bestMatch.className.trim();
-            document.getElementById('part-name').innerText = className.toUpperCase();
+            
+            // Находим данные в базе (игнорируем регистр)
+            const dbKey = Object.keys(legoDatabase).find(k => k.toLowerCase() === className.toLowerCase());
+            const data = legoDatabase[dbKey];
 
-           
-            const databaseKey = Object.keys(legoDatabase).find(
-                key => key.toLowerCase() === className.toLowerCase()
-            );
-
-            const data = legoDatabase[databaseKey];
-
+            // ВНИМАНИЕ: Если данные нашлись, мы ПРИНУДИТЕЛЬНО переписываем весь блок результата
             if (data) {
-                document.getElementById('part-id').innerText = data.ids;
-                document.getElementById('part-price').innerText = data.price;
-                document.getElementById('details').style.display = 'block';
+                document.getElementById('result').innerHTML = `
+                    <h2 style="color: #0055ad; text-align: center; margin: 10px 0;">${className.toUpperCase()}</h2>
+                    <div style="display: block; padding: 10px; border-top: 1px solid #ccc;">
+                        <p><b>Design ID:</b> ${data.ids}</p>
+                        <p><b>Price:</b> <span style="color: #28a745; font-weight: bold;">${data.price}</span></p>
+                    </div>
+                `;
             } else {
-                document.getElementById('details').style.display = 'none';
-                console.log("Ключ не найден в базе: " + className);
+                document.getElementById('part-name').innerText = className.toUpperCase() + " (NOT IN BASE)";
             }
         });
 
