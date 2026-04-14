@@ -59,9 +59,10 @@
             background-color: #f0f0f0;
             border-radius: 10px;
             border: 2px dashed #333;
-            text-align: left;
+            text-align: center;
+            min-height: 100px;
         }
-        #part-name { color: #0055ad; font-size: 24px; text-align: center; margin: 10px 0; }
+        #part-name { color: #0055ad; font-size: 24px; margin: 10px 0; }
         .info-label { font-weight: bold; color: #333; }
         .price-tag { color: #28a745; font-size: 20px; font-weight: bold; }
     </style>
@@ -75,14 +76,11 @@
         <button id="scan-btn" class="btn" style="display:none; background-color: #0055ad;">SCAN PART</button>
         <div id="result">
             <h2 id="part-name">Ready to work</h2>
-            <div id="details" style="display:none;">
-                <p><span class="info-label">Design ID:</span> <span id="part-id"></span></p>
-                <p><span class="info-label">Market Price:</span> <span id="part-price" class="price-tag"></span></p>
-            </div>
         </div>
     </div>
 
     <script>
+        // ЗАМЕНИ ЭТУ ССЫЛКУ НА СВОЮ НОВУЮ, КОГДА ПЕРЕОБУЧИШЬ МОДЕЛЬ
         const URL = "https://teachablemachine.withgoogle.com/models/9a2XHS5dZ/";
         
         const legoDatabase = {
@@ -111,7 +109,9 @@
         let model, maxPredictions;
 
         async function init() {
-            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
         }
 
@@ -122,8 +122,7 @@
                 img.src = reader.result;
                 img.style.display = 'block';
                 document.getElementById('scan-btn').style.display = 'inline-block';
-                document.getElementById('part-name').innerText = "READY TO SCAN";
-                document.getElementById('details').style.display = 'none';
+                document.getElementById('result').innerHTML = '<h2 id="part-name">READY TO SCAN</h2>';
             }
             reader.readAsDataURL(e.target.files[0]);
         });
@@ -139,23 +138,29 @@
                 }
             }
 
-            const className = bestMatch.className.trim();
+            const detectedName = bestMatch.className.trim();
             
-            // Находим данные в базе (игнорируем регистр)
-            const dbKey = Object.keys(legoDatabase).find(k => k.toLowerCase() === className.toLowerCase());
+            // Ищем ключ в базе, игнорируя регистр (на случай если в базе маленькие буквы, а в ИИ большие)
+            const dbKey = Object.keys(legoDatabase).find(k => k.toLowerCase() === detectedName.toLowerCase());
             const data = legoDatabase[dbKey];
 
-            // ВНИМАНИЕ: Если данные нашлись, мы ПРИНУДИТЕЛЬНО переписываем весь блок результата
+            const resultBlock = document.getElementById('result');
+
             if (data) {
-                document.getElementById('result').innerHTML = `
-                    <h2 style="color: #0055ad; text-align: center; margin: 10px 0;">${className.toUpperCase()}</h2>
-                    <div style="display: block; padding: 10px; border-top: 1px solid #ccc;">
-                        <p><b>Design ID:</b> ${data.ids}</p>
-                        <p><b>Price:</b> <span style="color: #28a745; font-weight: bold;">${data.price}</span></p>
+                // Выводим ровно так, как называется в ИИ (без toUpperCase)
+                resultBlock.innerHTML = `
+                    <h2 style="color: #0055ad; margin: 10px 0;">${detectedName}</h2>
+                    <div style="text-align: left; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <p><span class="info-label">Design ID:</span> ${data.ids}</p>
+                        <p><span class="info-label">Market Price:</span> <span class="price-tag">${data.price}</span></p>
                     </div>
                 `;
             } else {
-                document.getElementById('part-name').innerText = className.toUpperCase() + " (NOT IN BASE)";
+                resultBlock.innerHTML = `
+                    <h2 style="color: #e60012;">NOT IN BASE</h2>
+                    <p>ИИ узнал деталь как: <b>"${detectedName}"</b></p>
+                    <p style="font-size: 0.8em; color: #666;">Проверь название в legoDatabase</p>
+                `;
             }
         });
 
