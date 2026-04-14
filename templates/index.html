@@ -81,8 +81,10 @@
             </div>
         </div>
     </div>
+
     <script>
         const URL = "https://teachablemachine.withgoogle.com/models/9a2XHS5dZ/";
+        
         const legoDatabase = {
             "Brown Brick 2x2": { price: "18 rubles", ids: "4623773, 6014520, 6092677" },
             "Blue Grille 2x1": { price: "14 rubles", ids: "6152109" },
@@ -105,13 +107,16 @@
             "Inverted Orange Slope 33 3x2": { price: "12 rubles", ids: "4121737" },
             "Tan Masonry Brick 2x1": { price: "20 rubles", ids: "4646577" }
         };
+
         let model, maxPredictions;
+
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
         }
+
         document.getElementById('imageUpload').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function() {
@@ -119,27 +124,43 @@
                 img.src = reader.result;
                 img.style.display = 'block';
                 document.getElementById('scan-btn').style.display = 'inline-block';
+                document.getElementById('part-name').innerText = "READY TO SCAN";
+                document.getElementById('details').style.display = 'none';
             }
             reader.readAsDataURL(e.target.files[0]);
         });
+
         document.getElementById('scan-btn').addEventListener('click', async function() {
             const img = document.getElementById('preview');
             const prediction = await model.predict(img);
+            
             let bestMatch = { className: "", probability: 0 };
             for (let i = 0; i < maxPredictions; i++) {
                 if (prediction[i].probability > bestMatch.probability) {
                     bestMatch = prediction[i];
                 }
             }
-            const className = bestMatch.className;
+
+            const className = bestMatch.className.trim();
             document.getElementById('part-name').innerText = className.toUpperCase();
-            const data = legoDatabase[className];
+
+           
+            const databaseKey = Object.keys(legoDatabase).find(
+                key => key.toLowerCase() === className.toLowerCase()
+            );
+
+            const data = legoDatabase[databaseKey];
+
             if (data) {
                 document.getElementById('part-id').innerText = data.ids;
                 document.getElementById('part-price').innerText = data.price;
                 document.getElementById('details').style.display = 'block';
+            } else {
+                document.getElementById('details').style.display = 'none';
+                console.log("Ключ не найден в базе: " + className);
             }
         });
+
         init();
     </script>
 </body>
